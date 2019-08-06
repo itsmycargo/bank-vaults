@@ -238,6 +238,7 @@ func (k *ContainerInfo) parseDockerConfig(dockerCreds DockerCreds) (bool, error)
 }
 
 func (k *ContainerInfo) fixDockerHubImage(image string) string {
+	image = strings.TrimPrefix(image, "docker.io/")
 	slash := strings.Index(image, "/")
 	if slash == -1 { // Is it a DockerHub library repository?
 		image = "index.docker.io/library/" + image
