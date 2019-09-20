@@ -61,6 +61,7 @@ type vaultConfig struct {
 	ignoreMissingSecrets        string
 	vaultEnvPassThrough         string
 	mutateConfigMap             bool
+	mutateSecret                bool
 }
 
 var vaultAgentConfig = `
@@ -313,6 +314,9 @@ func (mw *mutatingWebhook) vaultSecretsMutator(ctx context.Context, obj metav1.O
 		if _, ok := obj.GetAnnotations()["vault.security.banzaicloud.io/vault-addr"]; ok {
 			return false, mutateSecret(v, parseVaultConfig(obj), whcontext.GetAdmissionRequest(ctx).Namespace)
 		}
+		if _, ok := obj.GetAnnotations()["vault.security.banzaicloud.io/mutate-secret"]; ok {
+			return false, mutateSecret(v, parseVaultConfig(obj), whcontext.GetAdmissionRequest(ctx).Namespace)
+		}
 		return false, nil
 	case *corev1.ConfigMap:
 		if _, ok := obj.GetAnnotations()["vault.security.banzaicloud.io/mutate-configmap"]; ok {
@@ -440,6 +444,12 @@ func parseVaultConfig(obj metav1.Object) vaultConfig {
 		vaultConfig.mutateConfigMap, _ = strconv.ParseBool(val)
 	} else {
 		vaultConfig.mutateConfigMap, _ = strconv.ParseBool(viper.GetString("mutate_configmap"))
+	}
+
+	if val, ok := annotations["vault.security.banzaicloud.io/mutate-secret"]; ok {
+		vaultConfig.mutateSecret, _ = strconv.ParseBool(val)
+	} else {
+		vaultConfig.mutateSecret, _ = strconv.ParseBool(viper.GetString("mutate_secret"))
 	}
 
 	return vaultConfig
@@ -872,6 +882,7 @@ func init() {
 	viper.SetDefault("vault_ignore_missing_secrets", "false")
 	viper.SetDefault("vault_env_passthrough", "")
 	viper.SetDefault("mutate_configmap", "false")
+	viper.SetDefault("mutate_secret", "false")
 	viper.SetDefault("tls_cert_file", "")
 	viper.SetDefault("tls_private_key_file", "")
 	viper.SetDefault("listen_address", ":8443")
